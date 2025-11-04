@@ -183,6 +183,61 @@ corporate-filingsNSE/
    - **Cause:** Excel structure differs from expected format
    - **Solution:** Check Excel file manually, update field names
 
+### --region Edge Cases Discovered During Development
+
+5. **Field Name Variations Across Sectors**
+   ```
+   [FAIL] No data found in file.xlsx
+   ```
+   - **Cause:** Different sectors use different field naming conventions
+   - **Banking Sector:** Uses `ProfitLossForThePeriod` and `BasicEarningsPerShareAfterExtraordinaryItems`
+   - **Non-Banking Sector:** Uses `ProfitLossForPeriod` and `BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations`
+   - **Solution:** Extractor now uses OR conditions to handle multiple field name variations
+
+6. **XBRL Data Structure Format**
+   ```
+   Expected: Standard Excel format
+   Actual: XBRL Instance Data format with columns: Sr.No. | Element Name | Period | Unit | Decimals | Fact Value
+   ```
+   - **Cause:** XBRL converted files use standardized instance data format
+   - **Field Names:** Located in Column B (Element Name)
+   - **Values:** Located in Column F (Fact Value)
+   - **Solution:** Updated extractor to parse XBRL instance data format correctly
+
+7. **Multiple EPS Field Variations**
+   ```
+   Banking: BasicEarningsPerShareAfterExtraordinaryItems
+   Non-Banking: BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations
+   Alternative: BasicEarningsPerShareBeforeExtraordinaryItems
+   Continuing Ops: BasicEarningsLossPerShareFromContinuingOperations
+   ```
+   - **Cause:** Different accounting standards and reporting requirements
+   - **Solution:** Extractor checks multiple EPS field patterns using OR conditions
+
+8. **Consolidated vs Standalone Statements**
+   ```
+   Consolidated: ProfitOrLossAttributableToOwnersOfParent
+   Standalone: ProfitLossForPeriod / ProfitLossForThePeriod
+   ```
+   - **Cause:** Companies report both consolidated and standalone financials
+   - **Solution:** Extractor handles both statement types automatically
+
+9. **Unicode and Encoding Issues**
+   ```
+   UnicodeEncodeError: 'charmap' codec can't encode character
+   ```
+   - **Cause:** Windows command prompt encoding limitations
+   - **Solution:** Removed Unicode characters from output messages
+
+10. **Excel Temporary Files**
+    ```
+    [ERROR] Permission denied: ~$filename.xlsx
+    ```
+    - **Cause:** Excel creates temporary files starting with ~$
+    - **Solution:** Extractor skips files starting with ~$ automatically
+
+### --end of region
+
 ### Data Quality
 
 - **XBRL Availability:** Only filings from 2018+ typically have XBRL links

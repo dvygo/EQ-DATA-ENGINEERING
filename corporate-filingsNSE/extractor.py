@@ -32,7 +32,7 @@ def extract_date_from_filename(filename):
     return filename.split('_')[0]  # Fallback
 
 def extract_fields_from_excel(excel_filepath):
-    """Extract ProfitLoss and BasicEPS fields from Excel file using XBRL format"""
+    """Extract DateOfEndOfReportingPeriod, ProfitLoss and BasicEPS fields from Excel file using XBRL format"""
     try:
         # Load Excel file using openpyxl
         workbook = load_workbook(excel_filepath, data_only=True)
@@ -50,6 +50,7 @@ def extract_fields_from_excel(excel_filepath):
             data_sheet = workbook[sheet_names[0]]  # Use first sheet as fallback
         
         # Initialize values
+        reporting_period_end_date = None
         profit_loss = None
         basic_eps = None
         
@@ -60,6 +61,19 @@ def extract_fields_from_excel(excel_filepath):
             fact_value = data_sheet.cell(row=row, column=6).value    # Column F: Fact Value
             
             if element_name and isinstance(element_name, str) and fact_value is not None:
+                # Look for DateOfEndOfReportingPeriod
+                if reporting_period_end_date is None and 'DateOfEndOfReportingPeriod' in element_name:
+                    try:
+                        # Convert date to readable format
+                        if isinstance(fact_value, str):
+                            # Handle date string format (e.g., "2024-12-31")
+                            date_obj = datetime.strptime(fact_value, '%Y-%m-%d')
+                            reporting_period_end_date = date_obj.strftime('%d%b%Y')
+                        else:
+                            reporting_period_end_date = str(fact_value)
+                    except (ValueError, TypeError):
+                        reporting_period_end_date = str(fact_value)
+                
                 # Look for Profit/Loss fields (multiple variations using OR conditions)
                 if profit_loss is None and any(pattern in element_name for pattern in [
                     'ProfitLossForThePeriod',           # Banking sector
@@ -86,16 +100,16 @@ def extract_fields_from_excel(excel_filepath):
                     except (ValueError, TypeError):
                         pass
                 
-                # If both values found, break early
-                if profit_loss is not None and basic_eps is not None:
+                # If all values found, break early
+                if reporting_period_end_date is not None and profit_loss is not None and basic_eps is not None:
                     break
         
         workbook.close()
-        return profit_loss, basic_eps
+        return reporting_period_end_date, profit_loss, basic_eps
         
     except Exception as e:
         print(f"[ERROR] Failed to process {os.path.basename(excel_filepath)}: {e}")
-        return None, None
+        return None, None, None
 
 def calculate_number_of_shares(profit_loss, basic_eps):
     """Calculate number of shares outstanding"""
@@ -138,26 +152,26 @@ def extract_all_excel_files(symbol):
         filing_date = extract_date_from_filename(excel_file)
         
         # Extract financial fields
-        profit_loss, basic_eps = extract_fields_from_excel(excel_path)
+        reporting_date, profit_loss, basic_eps = extract_fields_from_excel(excel_path)
         
-        if profit_loss is not None and basic_eps is not None:
+        if reporting_date is not None and profit_loss is not None and basic_eps is not None:
             # Calculate number of shares
             num_shares = calculate_number_of_shares(profit_loss, basic_eps)
             
             # Check for duplicate dates
-            existing_dates = [item['filing_date'] for item in extracted_data]
-            if filing_date in existing_dates:
-                print(f"[SKIP] Duplicate date found: Date={filing_date} (keeping existing data)")
+            existing_dates = [item['reporting_date'] for item in extracted_data]
+            if reporting_date in existing_dates:
+                print(f"[SKIP] Duplicate date found: Date={reporting_date} (keeping existing data)")
                 continue
             
             extracted_data.append({
-                'filing_date': filing_date,
+                'reporting_date': reporting_date,
                 'profit_loss': profit_loss,
                 'basic_eps': basic_eps,
                 'num_shares': num_shares
             })
             
-            print(f"[OK] Extracted: Date={filing_date}, ProfitLoss={profit_loss}, EPS={basic_eps}, Shares={num_shares}")
+            print(f"[OK] Extracted: Date={reporting_date}, ProfitLoss={profit_loss}, EPS={basic_eps}, Shares={num_shares}")
             successful_count += 1
         else:
             print(f"[FAIL] No data found in {excel_file}")
@@ -176,21 +190,21 @@ def save_to_csv(symbol, data):
     
     # Sort data by date in reverse chronological order
     try:
-        data.sort(key=lambda x: datetime.strptime(x['filing_date'], '%d%b%Y'), reverse=True)
+        data.sort(key=lambda x: datetime.strptime(x['reporting_date'], '%d%b%Y'), reverse=True)
     except ValueError:
         # If date parsing fails, sort by string
-        data.sort(key=lambda x: x['filing_date'], reverse=True)
+        data.sort(key=lambda x: x['reporting_date'], reverse=True)
     
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         
         # Write header
-        writer.writerow(['FilingDate', 'ProfitLossForThePeriod', 'BasicEarningsPerShareAfterExtraordinaryItems', 'NumberOfSharesOutstanding'])
+        writer.writerow(['DateOfEndOfReportingPeriod', 'ProfitLossForThePeriod', 'BasicEarningsPerShareAfterExtraordinaryItems', 'NumberOfSharesOutstanding'])
         
         # Write data
         for item in data:
             writer.writerow([
-                item['filing_date'],
+                item['reporting_date'],
                 item['profit_loss'],
                 item['basic_eps'],
                 item['num_shares']
@@ -264,7 +278,7 @@ def main():
     print(f"[OK] Successfully processed: {len(successful_symbols)} symbols")
     print(f"[FAIL] Failed to process: {len(failed_symbols)} symbols")
     print(f"[INFO] CSV files organized in DATA/{{symbol}}/CSV/ folders")
-    print(f"[INFO] Each CSV contains: FilingDate, ProfitLoss, BasicEPS, NumberOfSharesOutstanding")
+    print(f"[INFO] Each CSV contains: DateOfEndOfReportingPeriod, ProfitLoss, BasicEPS, NumberOfSharesOutstanding")
 
 if __name__ == "__main__":
     main()
