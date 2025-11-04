@@ -1,0 +1,60 @@
+# Credits
+
+## Development Team
+
+**Lead Developer:** dvygo  
+**Organization:** Vayuman Capital  
+**Year:** 2025
+
+## Acknowledgments
+
+### Third-Party Libraries
+
+- **requests** - HTTP library for Python
+  - Used for NSE API calls and XBRL file downloads
+  - License: Apache License 2.0
+  - Homepage: https://requests.readthedocs.io/
+
+- **openpyxl** - Python library to read/write Excel files
+  - Used for Excel file processing and data extraction
+  - License: MIT License
+  - Homepage: https://openpyxl.readthedocs.io/
+
+### Data Sources
+
+- **National Stock Exchange of India (NSE)**
+  - Corporate filings API endpoint
+  - XBRL data source for Indian public companies
+  - Website: https://www.nseindia.com/
+
+- **EC2 XBRL Converter Service**
+  - XBRL to Excel conversion service
+  - Endpoint: http://ec2-3-221-41-38.compute-1.amazonaws.com/
+
+### Inspiration
+
+This project was inspired by the need to automate financial data extraction from Indian corporate filings for investment research and analysis at Vayuman Capital.
+
+### Standards and Formats
+
+- **XBRL (eXtensible Business Reporting Language)**
+  - International standard for business reporting
+  - Specification: https://www.xbrl.org/
+
+- **NSE Filing Standards**
+  - Indian corporate disclosure requirements
+  - Regulatory framework by SEBI (Securities and Exchange Board of India)
+
+## Special Thanks
+
+- **NSE India** for providing public access to corporate filing data
+- **Python Community** for excellent libraries and documentation
+- **Open Source Contributors** who maintain the dependencies used in this project
+
+## Disclaimer
+
+This project is developed for educational and research purposes. Users are responsible for compliance with applicable laws and regulations when using financial data.
+
+---
+
+**Vayuman Capital** - Investment Research & Analysis (2025)
